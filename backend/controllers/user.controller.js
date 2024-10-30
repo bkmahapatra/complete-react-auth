@@ -1,5 +1,6 @@
 import { ACCESS_TOKEN, REFRESH_TOKEN, options } from "../constant/api.js";
 import { User } from "../model/user.model.js";
+import { URL } from "../model/url.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -185,14 +186,32 @@ const getUserProfile = asyncHandler(async (req, res) => {
   //   "-refreshToken"
   // );
 
-  const urls = await URL.find({ owner: req.user._id });
+  // const urls = await URL.find({ owner: req.user._id });
 
-  // if (!user) {
-  //   throw new ApiError(400, "User data not found");
-  // }
-  const dd = { ...reqUser, url: "demo" };
+  // const dd = { ...reqUser, url: "demo" };
 
-  console.log({ dd });
+  // console.log({ dd });
+
+  const reqUser = await User.aggregate([
+    {
+      $match: { username: req.user.username },
+    },
+    {
+      $lookup: {
+        from: "shorturls",
+        localField: "_id",
+        foreignField: "owner",
+        as: "urls",
+      },
+    },
+    {
+      $project: {
+        __v: 0,
+        password: 0,
+        refreshToken: 0,
+      },
+    },
+  ]);
 
   return res.status(200).json(new ApiResponse(200, reqUser));
 });

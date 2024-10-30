@@ -11,6 +11,7 @@ import { ApiResponse } from "./utils/ApiResponse.js";
 import { Click } from "./model/click.model.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 
@@ -29,6 +30,12 @@ app.use(
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
+
+// const limiter = rateLimit({
+//   windowMs: 1 * 60 * 1000,
+//   max: 60,
+// });
+// app.use(limiter);
 
 app.use("/api/user", userRoutes);
 app.use("/api/url", urlRoutes);
@@ -68,5 +75,22 @@ app.get(
     return res.redirect(`https://${url.originalUrl}`);
   })
 );
+
+app.use((err, req, res, next) => {
+  if (err instanceof ApiError) {
+    res
+      .status(err.statusCode)
+      .json({
+        status: "error",
+        code: err.statusCode,
+        message: err.message,
+        errors: err.errors,
+      });
+  }
+
+  res
+    .status(500)
+    .json({ status: "error", code: 500, message: "Internal Server Error" });
+});
 
 app.listen(process.env.PORT || 5000);
